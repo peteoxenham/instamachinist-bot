@@ -7,10 +7,10 @@ from discord.ext import commands
 from discord.ext import tasks
 
 # Allowable units, ignore
-siunits = ['nm','nanometer','mm','milimeter','cm','centimeter','m','meter','metre','km','kilometer']
+siunits = ['nm','nanometer','mm','milimeter','cm','centimeter','m','meter','metre','km','kilometer','gram','g','kilogram','kg']
 
-# All conversions, relative to 1mm
-units = {
+# All conversions, relative to 1mm/1g
+length_units = {
     'nm':.000001,
     'nanometer':.000001,
     'mm':1,
@@ -43,6 +43,19 @@ units = {
     'microns': .001,
     'parsec': 3.086e+19,
     'parsecs': 3.086e+19,
+    'banana': 190.5,
+    'bananas': 190.5,
+
+}
+
+mass_units = {
+    'lbs': 453.59,
+    'lb': 453.59,
+    'ton': 907184.74,
+    'elephant':7000000,
+    'elephants': 7000000,
+    'ounce': 28.3495,
+
 }
 
 #Needed for fraction support, cast isn't great
@@ -61,19 +74,29 @@ def convert_to_float(frac_str):
         return whole - frac if whole < 0 else whole + frac
 
 
-def convert(val, inp, out = 'mm'):
-    std = convert_to_float(val)*units[inp]/units[out]
+def convert_length(val, inp, out = 'mm'):
+    std = convert_to_float(val)*length_units[inp]/length_units[out]
     ret = std
     un = 'mm'
     if std >= 100:
         un = 'cm'
-        ret = std/units[un]
+        ret = std/length_units[un]
     if std >= 1000:
         un = 'm'
-        ret = std/units[un]
+        ret = std/length_units[un]
     if std >= 1000000:
         un = 'km'
-        ret = std/units[un]
+        ret = std/length_units[un]
+    return str(round(ret, 4)) + un
+
+
+def convert_mass(val, inp, out = 'mm'):
+    std = convert_to_float(val)*mass_units[inp]/mass_units[out]
+    ret = std
+    un = 'g'
+    if std >= 1000:
+        un = 'kg'
+        ret = std/mass_units[un]
     return str(round(ret, 4)) + un
 
 load_dotenv()
@@ -99,19 +122,31 @@ async def on_message(message):
             words = msg.content.split()
             for i, w in enumerate(words):
                 # for space split:
-                if w in units.keys() or w.rstrip(w[-1]) in units.keys():
+                if w in length_units.keys() or w.rstrip(w[-1]) in length_units.keys():
                     if w not in siunits:
-                        response = '`' + words[i-1] + ' ' + w + ' = ' + str(convert(words[i-1], w)) + '`'
+                        response = '`' + words[i-1] + ' ' + w + ' = ' + str(convert_length(words[i-1], w)) + '`'
 
+                if w in mass_units.keys() or w.rstrip(w[-1]) in mass_units.keys():
+                    if w not in siunits:
+                        response = '`' + words[i-1] + ' ' + w + ' = ' + str(convert_mass(words[i-1], w)) + '`'
                     
                 # for no space:
-                for u in units.keys():
+                for u in length_units.keys():
                     if u in w:
                         val = w[:-len(u)]
                         try:
                             if u not in siunits:
-                                response = '`' + val + ' ' + u + ' = ' + str(convert(val, u)) + '`'
+                                response = '`' + val + ' ' + u + ' = ' + str(convert_length(val, u)) + '`'
                         except:pass
+
+                for u in mass_units.keys():
+                    if u in w:
+                        val = w[:-len(u)]
+                        try:
+                            if u not in siunits:
+                                response = '`' + val + ' ' + u + ' = ' + str(convert_mass(val, u)) + '`'
+                        except:pass
+
             try:
                 if response != last:
                     await message.channel.send(response)
